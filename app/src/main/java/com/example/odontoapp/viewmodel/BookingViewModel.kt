@@ -1,39 +1,78 @@
 package com.example.odontoapp.viewmodel
 
 import android.content.Context
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.odontoapp.model.*
+import com.example.odontoapp.model.AppointmentEntity
+import com.example.odontoapp.model.ClinicRepository
+import com.example.odontoapp.model.ClinicRepositoryImpl
 import kotlinx.coroutines.launch
-import java.time.*
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 
-class BookingViewModel(private val repo: ClinicRepository, val dentistId: String): ViewModel() {
-    var date by mutableStateOf(LocalDate.now().plusDays(1))
+class BookingViewModel(
+    private val repo: ClinicRepository,
+    val dentistId: String
+) : ViewModel() {
+
+    var date by mutableStateOf(LocalDate.now())
+        private set
+
     var slots by mutableStateOf<List<LocalTime>>(emptyList())
+        private set
 
-    init { recomputeSlots() }
+    var selectedSlot by mutableStateOf<LocalTime?>(null)
+        private set
 
-    fun onDateChange(d: LocalDate) { date = d; recomputeSlots() }
+    init {
+        recomputeSlots()
+    }
+
+    fun onDateChange(d: LocalDate) {
+        date = d
+        recomputeSlots()
+        selectedSlot = null
+    }
 
     private fun recomputeSlots() {
-        // Slots 09:00–17:00 cada 30 min (demo)
-        val list = mutableListOf<LocalTime>()
-        var t = LocalTime.of(9,0)
-        while (t.isBefore(LocalTime.of(17,30))) { list += t; t = t.plusMinutes(30) }
-        slots = list
+        // mismos horarios que tu UI: 09:00, 10:00, 11:30, 15:00, 16:30
+        slots = listOf(
+            LocalTime.of(9, 0),
+            LocalTime.of(10, 0),
+            LocalTime.of(11, 30),
+            LocalTime.of(15, 0),
+            LocalTime.of(16, 30)
+        )
+    }
+
+    fun onSlotSelected(t: LocalTime) {
+        selectedSlot = t
     }
 
     fun book(onBooked: () -> Unit) = viewModelScope.launch {
-        val dt = date.atTime(slots.firstOrNull() ?: LocalTime.of(9,0))
+        val chosen = selectedSlot ?: slots.firstOrNull() ?: return@launch
+        val dt = date.atTime(chosen)
+
         repo.saveAppointment(
             AppointmentEntity(
                 dentistId = dentistId,
-                startsAtMillis = dt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                startsAtMillis = dt.atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
             )
         )
+        // aquí dentro normalmente tu repo disparaba la notificación
         onBooked()
     }
 }
-@Composable fun rememberBookingVM(ctx: Context, dentistId: String) =
-    remember { BookingViewModel(ClinicRepositoryImpl.get(ctx), dentistId) }
+
+@Composable
+fun rememberBookingVM(ctx: Context, dentistId: String) =
+    androidx.compose.runtime.remember {
+        BookingViewModel(ClinicRepositoryImpl.get(ctx), dentistId)
+    }

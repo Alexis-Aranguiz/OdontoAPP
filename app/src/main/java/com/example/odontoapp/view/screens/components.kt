@@ -4,7 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Warning   // 👈 Ícono correcto
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,11 +23,24 @@ fun ValidatedField(
         onValueChange = onValueChange,
         label = { Text(label) },
         isError = error != null,
-        trailingIcon = { if (error != null) Icon(Icons.Filled.Error, contentDescription = null) },
+        trailingIcon = {
+            if (error != null)
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+        },
         modifier = modifier
     )
+
     AnimatedVisibility(visible = error != null) {
-        Text(error ?: "", style = MaterialTheme.typography.labelSmall)
+        Text(
+            text = error ?: "",
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
+
     Spacer(Modifier.height(8.dp))
 }

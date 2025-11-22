@@ -1,90 +1,85 @@
 package com.example.odontoapp.view
 
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.odontoapp.view.screens.*
+import androidx.navigation.navArgument
+import com.example.odontoapp.view.screens.AgendaScreen
+import com.example.odontoapp.view.screens.BookingScreen
+import com.example.odontoapp.view.screens.ExploreScreen
+import com.example.odontoapp.view.screens.ProfileScreen
 
 object Routes {
     const val SHELL = "shell"
     const val EXPLORE = "explore"
     const val AGENDA = "agenda"
     const val PROFILE = "profile"
-    const val BOOKING = "booking/{dentistId}"
+    const val BOOKING = "booking"
 }
 
 @Composable
 fun AppNavHost() {
-    val outerNav = rememberNavController()
+    val nav = rememberNavController()
 
     NavHost(
-        navController = outerNav,
+        navController = nav,
         startDestination = Routes.SHELL
     ) {
-        // Contenedor con BottomBar
+        // -------- Shell con bottom bar --------
         composable(Routes.SHELL) {
             val innerNav = rememberNavController()
-
             Scaffold(
                 bottomBar = {
+                    val entry by innerNav.currentBackStackEntryAsState()
+                    val currentRoute = entry?.destination?.route
+
                     NavigationBar {
-                        val navBackStackEntry by innerNav.currentBackStackEntryAsState()
-                        val currentDestination = navBackStackEntry?.destination
-
-                        fun isSelected(route: String, dest: NavDestination?) =
-                            dest?.hierarchy?.any { it.route == route } == true
-
-                        NavigationBarItem(
-                            selected = isSelected(Routes.EXPLORE, currentDestination),
-                            onClick = {
-                                innerNav.navigate(Routes.EXPLORE) {
-                                    popUpTo(innerNav.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {}, label = { Text("Explorar") }
-                        )
-                        NavigationBarItem(
-                            selected = isSelected(Routes.AGENDA, currentDestination),
-                            onClick = {
-                                innerNav.navigate(Routes.AGENDA) {
-                                    popUpTo(innerNav.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {}, label = { Text("Agenda") }
-                        )
-                        NavigationBarItem(
-                            selected = isSelected(Routes.PROFILE, currentDestination),
-                            onClick = {
-                                innerNav.navigate(Routes.PROFILE) {
-                                    popUpTo(innerNav.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {}, label = { Text("Perfil") }
-                        )
+                        fun item(route: String, label: String) {
+                            NavigationBarItem(
+                                selected = currentRoute == route,
+                                onClick = {
+                                    innerNav.navigate(route) {
+                                        popUpTo(innerNav.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = {},
+                                label = { Text(label) }
+                            )
+                        }
+                        item(Routes.EXPLORE, "Explorar")
+                        item(Routes.AGENDA, "Agenda")
+                        item(Routes.PROFILE, "Perfil")
                     }
                 }
-            ) { padding ->
+            ) { paddingValues ->
                 NavHost(
                     navController = innerNav,
                     startDestination = Routes.EXPLORE,
-                    modifier = Modifier.padding(padding)
+                    modifier = Modifier.padding(paddingValues)
                 ) {
                     composable(Routes.EXPLORE) {
-                        ExploreScreen(onReserve = { id -> outerNav.navigate("booking/$id") })
+                        ExploreScreen(
+                            onReserve = { id, name ->
+                                val encodedName = Uri.encode(name)
+                                nav.navigate("${Routes.BOOKING}/$id/$encodedName")
+                            }
+                        )
                     }
                     composable(Routes.AGENDA) { AgendaScreen() }
                     composable(Routes.PROFILE) { ProfileScreen() }
@@ -92,10 +87,23 @@ fun AppNavHost() {
             }
         }
 
-        // Flujo de reserva
-        composable(Routes.BOOKING) { backStack ->
-            val dentistId = backStack.arguments?.getString("dentistId")!!
-            BookingScreen(dentistId = dentistId, onBooked = { outerNav.popBackStack() })
+        // -------- Pantalla de Booking, recibe id y nombre --------
+        composable(
+            route = "${Routes.BOOKING}/{dentistId}/{dentistName}",
+            arguments = listOf(
+                navArgument("dentistId") { type = NavType.StringType },
+                navArgument("dentistName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val dentistId = backStackEntry.arguments?.getString("dentistId") ?: ""
+            val dentistNameEncoded = backStackEntry.arguments?.getString("dentistName") ?: ""
+            val dentistName = Uri.decode(dentistNameEncoded)
+
+            BookingScreen(
+                dentistId = dentistId,
+                dentistName = dentistName,
+                onBooked = { nav.popBackStack() }
+            )
         }
     }
 }

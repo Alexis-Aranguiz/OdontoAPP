@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permiso para usar Internet (APIs externas: clima y hora) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+
     <!-- Permiso para notificaciones (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
@@ -31,4 +35,5 @@
 
         </activity>
     </application>
+
 </manifest>
