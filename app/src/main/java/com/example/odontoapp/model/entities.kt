@@ -4,7 +4,7 @@ import com.squareup.moshi.JsonClass
 
 // Eliminamos anotaciones @Entity de Room. Usamos data classes puras.
 
-@JsonClass(generateAdapter = true)
+
 data class PatientEntity(
     val id: String = "me",
     val name: String,
@@ -15,18 +15,18 @@ data class PatientEntity(
     val photoUri: String?
 )
 
-@JsonClass(generateAdapter = true)
+
 data class DentistEntity(
     val id: String,
     val name: String,
     val specialty: String
 )
 
-@JsonClass(generateAdapter = true)
+
 data class AppointmentEntity(
     val id: String? = null, // El ID lo suele generar el backend
     val patientId: String = "me",
-    val dentistId: String,
+    val dentistId: String?,
     val startsAtMillis: Long,
     val notes: String? = null
 )

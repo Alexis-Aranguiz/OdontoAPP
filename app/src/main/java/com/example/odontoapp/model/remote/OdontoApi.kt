@@ -4,30 +4,32 @@ import com.example.odontoapp.model.AppointmentEntity
 import com.example.odontoapp.model.DentistEntity
 import com.example.odontoapp.model.PatientEntity
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 
 interface OdontoApi {
-
-    // Obtener todos los dentistas
     @GET("dentists")
     suspend fun getDentists(): List<DentistEntity>
 
-    // Obtener perfil del paciente actual
-    // Asumimos que el backend maneja al usuario "me" o devuelve el primero por defecto para la demo
     @GET("patients/me")
     suspend fun getMe(): PatientEntity?
 
-    // Crear/Actualizar paciente
     @POST("patients")
     suspend fun updatePatient(@Body patient: PatientEntity): PatientEntity
 
-    // Obtener citas
     @GET("appointments")
     suspend fun getAppointments(): List<AppointmentEntity>
 
-    // Crear cita
     @POST("appointments")
     suspend fun createAppointment(@Body appointment: AppointmentEntity): AppointmentEntity
+
+    @DELETE("appointments/{id}")
+    suspend fun deleteAppointment(@Path("id") id: String)
+
+    // 👇 NUEVO: Actualizar Cita
+    @PUT("appointments/{id}")
+    suspend fun updateAppointment(@Path("id") id: String, @Body appointment: AppointmentEntity): AppointmentEntity
 }
