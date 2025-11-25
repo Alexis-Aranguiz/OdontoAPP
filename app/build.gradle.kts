@@ -1,15 +1,17 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt") // ⚠ necesario para Room
+    id("kotlin-kapt") // necesario para Room
 }
 
 android {
     namespace = "com.example.odontoapp"
 
     compileSdk {
-        version = release(36)  // ⚠ usa el helper propio de tu proyecto
+        // usa el helper propio de tu proyecto
+        version = release(36)
     }
 
     defaultConfig {
@@ -35,6 +37,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+
+        // 👇 Esto permite usar LocalDate, LocalTime, etc. en minSdk 24
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -82,14 +87,23 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
 
+    // -----------------------
+    // COIL (imágenes / foto de perfil)
+    // -----------------------
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("io.coil-kt:coil:2.4.0")
+
     // -----------------------
     // ROOM (Base de datos local)
     // -----------------------
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
+
+    // -----------------------
+    // DESUGARING (java.time en minSdk 24)
+    // -----------------------
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     // -----------------------
     // TESTING EXTRA (MockK, Coroutines)

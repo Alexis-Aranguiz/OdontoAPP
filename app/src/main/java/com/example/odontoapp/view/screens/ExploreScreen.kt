@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.Button
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.odontoapp.viewmodel.rememberExploreVM
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(
     onReserve: (dentistId: String, dentistName: String) -> Unit
@@ -34,8 +37,12 @@ fun ExploreScreen(
     ) { paddingValues ->
         val list = vm.dentists
 
-        Crossfade(targetState = list.isEmpty(), label = "explore") { empty ->
+        Crossfade(
+            targetState = list.isEmpty(),
+            label = "explore_loading"
+        ) { empty ->
             if (empty) {
+                // -------- Animación de carga mientras se traen los dentistas --------
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -43,9 +50,15 @@ fun ExploreScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Cargando profesionales…")
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Cargando profesionales…",
+                        modifier = Modifier.padding(top = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             } else {
+                // -------- Lista ya cargada --------
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()

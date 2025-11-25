@@ -3,12 +3,19 @@ package com.example.odontoapp.model.remote
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
-/**
- * Clientes Retrofit para las APIs externas:
- * - Clima (Open-Meteo)
- * - Hora (WorldTimeAPI)
- */
 object ApiClients {
+    // CAMBIAR ESTO POR TU URL DE RENDER (ej: https://mi-backend.onrender.com/api/)
+    // Asegúrate de que termine en /
+    private const val BACKEND_URL = "https://tu-app-en-render.com/api/"
+
+    // Cliente para tu Backend Spring Boot
+    val odontoApi: OdontoApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BACKEND_URL)
+            .addConverterFactory(MoshiConverterFactory.create())
+            .build()
+            .create(OdontoApi::class.java)
+    }
 
     // Cliente para clima
     val weather: WeatherApi by lazy {
@@ -28,4 +35,3 @@ object ApiClients {
             .create(TimeApi::class.java)
     }
 }
-

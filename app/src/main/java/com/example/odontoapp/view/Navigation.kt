@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,31 +39,60 @@ fun AppNavHost() {
         // -------- Shell con bottom bar --------
         composable(Routes.SHELL) {
             val innerNav = rememberNavController()
+
             Scaffold(
                 bottomBar = {
                     val entry by innerNav.currentBackStackEntryAsState()
                     val currentRoute = entry?.destination?.route
 
                     NavigationBar {
-                        fun item(route: String, label: String) {
-                            NavigationBarItem(
-                                selected = currentRoute == route,
-                                onClick = {
-                                    innerNav.navigate(route) {
-                                        popUpTo(innerNav.graph.startDestinationId) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
+                        // ExplorAR
+                        NavigationBarItem(
+                            selected = currentRoute == Routes.EXPLORE,
+                            onClick = {
+                                innerNav.navigate(Routes.EXPLORE) {
+                                    popUpTo(innerNav.graph.startDestinationId) {
+                                        saveState = true
                                     }
-                                },
-                                icon = {},
-                                label = { Text(label) }
-                            )
-                        }
-                        item(Routes.EXPLORE, "Explorar")
-                        item(Routes.AGENDA, "Agenda")
-                        item(Routes.PROFILE, "Perfil")
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {},
+                            label = { Text("Explorar") }
+                        )
+
+                        // AGENDA
+                        NavigationBarItem(
+                            selected = currentRoute == Routes.AGENDA,
+                            onClick = {
+                                innerNav.navigate(Routes.AGENDA) {
+                                    popUpTo(innerNav.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {},
+                            label = { Text("Agenda") }
+                        )
+
+                        // PERFIL
+                        NavigationBarItem(
+                            selected = currentRoute == Routes.PROFILE,
+                            onClick = {
+                                innerNav.navigate(Routes.PROFILE) {
+                                    popUpTo(innerNav.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {},
+                            label = { Text("Perfil") }
+                        )
                     }
                 }
             ) { paddingValues ->
@@ -81,8 +109,12 @@ fun AppNavHost() {
                             }
                         )
                     }
-                    composable(Routes.AGENDA) { AgendaScreen() }
-                    composable(Routes.PROFILE) { ProfileScreen() }
+                    composable(Routes.AGENDA) {
+                        AgendaScreen()
+                    }
+                    composable(Routes.PROFILE) {
+                        ProfileScreen()
+                    }
                 }
             }
         }
@@ -96,12 +128,14 @@ fun AppNavHost() {
             )
         ) { backStackEntry ->
             val dentistId = backStackEntry.arguments?.getString("dentistId") ?: ""
-            val dentistNameEncoded = backStackEntry.arguments?.getString("dentistName") ?: ""
+            val dentistNameEncoded =
+                backStackEntry.arguments?.getString("dentistName") ?: ""
             val dentistName = Uri.decode(dentistNameEncoded)
 
             BookingScreen(
                 dentistId = dentistId,
                 dentistName = dentistName,
+                onBack = { nav.popBackStack() },
                 onBooked = { nav.popBackStack() }
             )
         }

@@ -1,15 +1,9 @@
 package com.example.odontoapp.viewmodel
 
-import android.content.Context
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.odontoapp.model.AppointmentEntity
-import com.example.odontoapp.model.ClinicRepository
-import com.example.odontoapp.model.ClinicRepositoryImpl
+import com.example.odontoapp.model.local.ClinicRepository
+import com.example.odontoapp.model.remote.CitasClient
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -17,62 +11,54 @@ import java.time.ZoneId
 
 class BookingViewModel(
     private val repo: ClinicRepository,
-    val dentistId: String
+    private val dentistId: String
 ) : ViewModel() {
 
-    var date by mutableStateOf(LocalDate.now())
-        private set
+    var selectedDate: LocalDate? = null
+    var selectedTime: LocalTime? = null
+    var notes: String? = null
 
-    var slots by mutableStateOf<List<LocalTime>>(emptyList())
-        private set
+    /**
+     * Guarda la cita en Room + la envía al backend
+     */
+    fun book(onDone: () -> Unit) {
+        val date = selectedDate ?: return
+        val time = selectedTime ?: return
 
-    var selectedSlot by mutableStateOf<LocalTime?>(null)
-        private set
+        // Convertimos a millis
+        val dateTime = date.atTime(time)
+        val millis = dateTime
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
 
-    init {
-        recomputeSlots()
-    }
-
-    fun onDateChange(d: LocalDate) {
-        date = d
-        recomputeSlots()
-        selectedSlot = null
-    }
-
-    private fun recomputeSlots() {
-        // mismos horarios que tu UI: 09:00, 10:00, 11:30, 15:00, 16:30
-        slots = listOf(
-            LocalTime.of(9, 0),
-            LocalTime.of(10, 0),
-            LocalTime.of(11, 30),
-            LocalTime.of(15, 0),
-            LocalTime.of(16, 30)
+        val localAppointment = AppointmentEntity(
+            id = null,
+            dentistId = dentistId,
+            patientId = "me",
+            startsAtMillis = millis,
+            notes = notes
         )
-    }
 
-    fun onSlotSelected(t: LocalTime) {
-        selectedSlot = t
-    }
+        viewModelScope.launch {
 
-    fun book(onBooked: () -> Unit) = viewModelScope.launch {
-        val chosen = selectedSlot ?: slots.firstOrNull() ?: return@launch
-        val dt = date.atTime(chosen)
+            // 1) Guardar localmente en Room
+            repo.saveAppointment(localAppointment)
 
-        repo.saveAppointment(
-            AppointmentEntity(
-                dentistId = dentistId,
-                startsAtMillis = dt.atZone(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
-            )
-        )
-        // aquí dentro normalmente tu repo disparaba la notificación
-        onBooked()
+            // 2) Enviar al backend Spring Boot
+            try {
+                CitasClient.api.crearCita(
+                    nombre = "Paciente",
+                    dentistaId = dentistId,
+                    fecha = date.toString(),
+                    hora = time.toString(),
+                    comentario = notes ?: ""
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            onDone()
+        }
     }
 }
-
-@Composable
-fun rememberBookingVM(ctx: Context, dentistId: String) =
-    androidx.compose.runtime.remember {
-        BookingViewModel(ClinicRepositoryImpl.get(ctx), dentistId)
-    }
