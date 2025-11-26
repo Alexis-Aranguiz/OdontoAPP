@@ -55,6 +55,12 @@ dependencies {
     // -----------------------
     // COMPOSE + ANDROID CORE
     // -----------------------
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
+
+    implementation("com.airbnb.android:lottie-compose:6.1.0")
+    // 👇 ESTA ES LA QUE TE FALTA O ES NECESARIA PARA KOTLIN
+    implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

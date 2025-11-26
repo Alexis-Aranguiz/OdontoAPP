@@ -1,6 +1,5 @@
 package com.example.odontoapp.view.screens
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,7 +16,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+
+// 👇 IMPORTS PARA LOTTIE Y DIAGNÓSTICO
+import com.airbnb.lottie.compose.*
+import com.example.odontoapp.R
 import com.example.odontoapp.viewmodel.rememberProfileVM
+import androidx.compose.ui.graphics.Color // Para el color rojo/amarillo
+import androidx.compose.foundation.background // Para pintar el fondo
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,24 +31,18 @@ fun ProfileScreen() {
     val ctx = LocalContext.current
     val vm = rememberProfileVM(ctx)
 
-    // Lanzador para elegir fotos de la galería
+    // Configuración de la foto (Galería)
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
-            // Guardamos la URI como texto
             vm.onPhotoChange(uri.toString())
-            // Importante: Persistir permisos de lectura para ver la foto en el futuro
             try {
-                ctx.contentResolver.takePersistableUriPermission(
-                    uri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (e: Exception) {
-                // Algunos dispositivos no lo soportan, no es crítico para el demo
-            }
+                ctx.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (e: Exception) { }
         }
     }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Mi perfil") }) }) { p ->
+
         if (vm.loading) {
             Box(Modifier.fillMaxSize().padding(p), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -53,21 +53,20 @@ fun ProfileScreen() {
                     .fillMaxSize()
                     .padding(p)
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState()) // Permite scroll si el teclado tapa
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // --- TARJETA DE FOTO ---
                 ElevatedCard(Modifier.fillMaxWidth().animateContentSize()) {
                     Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Foto de perfil", style = MaterialTheme.typography.titleSmall)
                         Spacer(Modifier.height(8.dp))
 
-                        // Mostrar foto si existe
                         if (vm.photoUri != null) {
                             Image(
                                 painter = rememberAsyncImagePainter(vm.photoUri),
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .size(120.dp) // Tamaño fijo circular o cuadrado
-                                    .padding(4.dp),
+                                modifier = Modifier.size(120.dp).padding(4.dp),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
@@ -75,9 +74,7 @@ fun ProfileScreen() {
                         }
 
                         Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = {
-                            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }) {
+                        OutlinedButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
                             Text("Elegir desde galería")
                         }
                     }
@@ -85,20 +82,58 @@ fun ProfileScreen() {
 
                 Spacer(Modifier.height(16.dp))
 
-                // Campos de texto usando las nuevas funciones del VM
+                // --- CAMPOS DE TEXTO ---
                 ValidatedField(vm.name, vm::onNameChange, "Nombre", vm.nameErr)
                 ValidatedField(vm.email, vm::onEmailChange, "Email", vm.emailErr)
                 ValidatedField(vm.phone, vm::onPhoneChange, "Teléfono", vm.phoneErr)
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
+                // --- BOTÓN GUARDAR ---
                 Button(
                     onClick = { vm.save() },
-                    enabled = vm.canSave,
+                    // En modo diagnóstico habilitamos siempre el botón
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Guardar Perfil")
                 }
+
+                Spacer(Modifier.height(24.dp))
+
+                // ============================================================
+                // 👇 ZONA DE DIAGNÓSTICO (FORZAMOS LA ANIMACIÓN)
+                // ============================================================
+
+                // 1. Caja contenedora ROJA (para ver si ocupa espacio)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp)
+                        .background(Color.White.copy(alpha = 0.2f)) // Fondo rojo suave
+                ) {
+
+                    // 2. Cargamos la animación directamente aquí
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.diente))
+
+                    if (composition == null) {
+                        // Si sale esto, el archivo JSON está mal
+                        Text("⚠️ ERROR: Cargando 'diente.json'...", fontWeight = FontWeight.Bold)
+                    } else {
+                        // 3. Caja de animación AMARILLA
+                        LottieAnimation(
+                            composition = composition,
+                            iterations = LottieConstants.IterateForever, // Se mueve por siempre
+                            modifier = Modifier
+                                .size(200.dp)
+                                .background(Color.White) // Fondo amarillo chillón
+                        )
+                    }
+
+                }
+
+                // Espacio extra para el scroll
+                Spacer(Modifier.height(100.dp))
             }
         }
     }

@@ -6,37 +6,37 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.odontoapp.model.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import com.example.odontoapp.model.ClinicRepositoryImpl
 class ProfileViewModel(
     private val repo: ClinicRepository,
-    private val context: Context // Necesitamos el contexto para los mensajes
+    private val context: Context
 ) : ViewModel() {
 
-    var me by mutableStateOf<PatientEntity?>(null)
-        private set
+    var me by mutableStateOf<PatientEntity?>(null); private set
 
-    // Campos del formulario
+    // Campos
     var name by mutableStateOf("")
     var nameErr by mutableStateOf<String?>(null)
-
     var email by mutableStateOf("")
     var emailErr by mutableStateOf<String?>(null)
-
     var phone by mutableStateOf("")
     var phoneErr by mutableStateOf<String?>(null)
-
     var photoUri by mutableStateOf<String?>(null)
 
-    // Estado de carga
-    var loading by mutableStateOf(false)
-        private set
+    // Estados de UI
+    var loading by mutableStateOf(false); private set
+
+    // 👇 NUEVO: Estado para mostrar la animación
+    var showAnimation by mutableStateOf(false); private set
 
     init {
         viewModelScope.launch {
             loading = true
             try {
-                // Cargamos los datos actuales del servidor
                 me = repo.getMe()
                 me?.let {
                     name = it.name
@@ -44,64 +44,46 @@ class ProfileViewModel(
                     phone = it.phone.orEmpty()
                     photoUri = it.photoUri
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                // Si falla al cargar, no es crítico, el usuario puede llenarlo
-            }
+            } catch (e: Exception) { e.printStackTrace() }
             loading = false
         }
     }
 
-    fun onNameChange(v: String) {
-        name = v
-        nameErr = Validators.required(v)
-    }
+    fun onNameChange(v: String) { name = v; nameErr = Validators.required(v) }
+    fun onEmailChange(v: String) { email = v; emailErr = Validators.email(v) }
+    fun onPhoneChange(v: String) { phone = v; phoneErr = Validators.phone(v) }
+    fun onPhotoChange(uri: String?) { photoUri = uri }
 
-    fun onEmailChange(v: String) {
-        email = v
-        emailErr = Validators.email(v)
-    }
-
-    fun onPhoneChange(v: String) {
-        phone = v
-        phoneErr = Validators.phone(v)
-    }
-
-    fun onPhotoChange(uri: String?) {
-        photoUri = uri
-    }
-
-    // Validación para habilitar el botón
-    val canSave: Boolean
-        get() = (nameErr == null && emailErr == null && phoneErr == null && name.isNotBlank())
+    val canSave: Boolean get() = (nameErr == null && emailErr == null && phoneErr == null && name.isNotBlank())
 
     fun save() = viewModelScope.launch {
         loading = true
+        // Ocultamos animación previa si hubiera
+        showAnimation = false
+
         try {
-            val patient = PatientEntity(
-                id = "me", // Enlazamos siempre al usuario actual
-                name = name,
-                email = email.ifBlank { null },
-                phone = phone.ifBlank { null },
-                photoUri = photoUri
-            )
-
-            // Enviamos al backend
+            val patient = PatientEntity("me", name, email.ifBlank { null }, phone.ifBlank { null }, photoUri)
             repo.upsertMe(patient)
-
-            // Actualizamos la vista local
             me = repo.getMe()
 
-            Toast.makeText(context, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+            // 👇 ÉXITO: Quitamos carga y mostramos animación
+            loading = false
+            showAnimation = true
+
+            // Mantenemos la animación visible por 3 segundos y luego la quitamos
+            delay(3000)
+            showAnimation = false
 
         } catch (e: Exception) {
+            loading = false
             e.printStackTrace()
-            Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
-        loading = false
-    }
-}
 
+    }
+
+}
+// Fuera de la clase (al final del archivo)
 @Composable
 fun rememberProfileVM(ctx: Context) = remember {
     ProfileViewModel(ClinicRepositoryImpl.get(ctx), ctx)

@@ -1,44 +1,59 @@
 package com.example.odontoapp.model.remote
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-// ---------- Modelos de respuesta ----------
+// --- 1. Modelos de datos ---
 
-@JsonClass(generateAdapter = true)
 data class WeatherResponse(
-    @Json(name = "current_weather") val currentWeather: CurrentWeather?
+    val main: MainInfo,
+    val weather: List<WeatherDescription>,
+    val name: String
 )
 
-@JsonClass(generateAdapter = true)
-data class CurrentWeather(
-    @Json(name = "temperature") val temperature: Double?
+data class MainInfo(
+    val temp: Double,
+    val humidity: Int
 )
 
-// ---------- Interfaz Retrofit ----------
+data class WeatherDescription(
+    val description: String,
+    val icon: String
+)
+
+// --- 2. Interfaz de la API ---
 
 interface WeatherApi {
-
-    @GET("v1/forecast")
+    @GET("weather")
     suspend fun getCurrentWeather(
-        @Query("latitude") lat: Double,
-        @Query("longitude") lon: Double,
-        @Query("current_weather") currentWeather: Boolean = true
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = "metric",
+        @Query("lang") lang: String = "es"
     ): WeatherResponse
 }
 
-// ---------- Cliente singleton ----------
+// --- 3. Cliente Retrofit ---
 
 object WeatherClient {
+    private const val BASE_URL = "https://api.openweathermap.org/data/2.5/"
 
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://api.open-meteo.com/")
-        .addConverterFactory(MoshiConverterFactory.create())
+    // 👇 IMPORTANTE: Configuramos Moshi para que entienda Kotlin
+    private val moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
         .build()
 
-    val api: WeatherApi = retrofit.create(WeatherApi::class.java)
+    val service: WeatherApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            // 👇 Le pasamos nuestra instancia de moshi configurada
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(WeatherApi::class.java)
+    }
 }
